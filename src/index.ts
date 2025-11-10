@@ -81,7 +81,7 @@ export const Config: Schema<Config> = Schema.intersect([
     enableOriRecord: Schema.boolean().default(true).description('启用原始记录'),
     enableWordCloud: Schema.boolean().default(true).description('启用词云生成'),
     enableAiSummary: Schema.boolean().default(false).description('启用模型分析'),
-    tokenPerRequest: Schema.number().min(100).default(2000).description('每次请求的最大 Token 数'),
+    tokenPerRequest: Schema.number().default(32768).description('最大 Token 数'),
     enableAutoBackup: Schema.boolean().default(true).description('启用自动归档'),
     cacheRetentionDays: Schema.number().min(0).default(7).description('记录保留天数'),
     endpoints: Schema.array(Schema.object({
