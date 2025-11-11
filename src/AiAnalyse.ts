@@ -84,17 +84,23 @@ export class AiAnalyse {
     if (!records.length) return null;
     const uniqueUids = [...new Set(records.map(r => r.uid))];
     const users = await this.ctx.database.get('analyse_user', { uid: { $in: uniqueUids } });
-    const userInfoMap = new Map(users.map(u => [u.uid, u.userName]));
+    const userInfoMap = new Map(users.map(u => [u.uid, { userName: u.userName, userId: u.userId }]));
+    const firstUserRecord = users.find(u => u.uid === records[0].uid);
+    const channelName = firstUserRecord?.channelName || scope.scopeDesc.guildId;
+    const channelId = firstUserRecord?.channelId || scope.scopeDesc.guildId;
+    const startTime = records[0].timestamp.toLocaleString('zh-CN', { hour12: false });
+    const endTime = records[records.length - 1].timestamp.toLocaleString('zh-CN', { hour12: false });
+    const headerLine = `${channelName}(${channelId})[${startTime}-${endTime}]`;
     const uidToPlaceholderMap = new Map<number, string>();
     const userKeyEntries = uniqueUids.map((uid, index) => {
       const placeholder = String.fromCharCode(65 + index);
       uidToPlaceholderMap.set(uid, placeholder);
-      return `${placeholder}:${userInfoMap.get(uid)}`;
+      const userInfo = userInfoMap.get(uid);
+      return `${placeholder}:${userInfo.userName}(${userInfo.userId})`;
     });
-    const userKey = `用户:[${userKeyEntries.join(',')}]`;
-    const timeRange = `时间:[${records[0].timestamp.toLocaleString('zh-CN', { hour12: false })}-${records[records.length - 1].timestamp.toLocaleString('zh-CN', { hour12: false })}]`;
+    const userKey = `[${userKeyEntries.join(',')}]`;
     const formattedContent = records.map(r => `${uidToPlaceholderMap.get(r.uid)}: ${r.content}`).join('\n');
-    return `${timeRange}\n${userKey}\n${formattedContent}`;
+    return `${headerLine}\n${userKey}\n${formattedContent}`;
   }
 
   /**
@@ -105,16 +111,16 @@ export class AiAnalyse {
    */
   private async requestAi(mainContent: string, task?: string): Promise<string> {
     const systemPrompt = task
-      ? `你是一位专业的聊天分析师。你需要基于以下聊天记录和用户信息完成指定任务："${task}"。
-用户信息与消息记录的时间在聊天记录之前提供，在聊天记录中用字母表示对应用户，请遵循以下规则：
-1. 识别核心: 精准识别关键信息、主要话题、用户观点和情绪倾向。
-2. 保持客观: 严格基于聊天记录分析，避免推测或添加不存在的信息。
-3. 用用户名: 在分析报告中，必须使用字母对应的用户名来说明用户。
-4. 格式要求: 以纯文本进行输出，不要使用任何 Markdown 格式。
-5. 字数限制: 将总字数控制在 512 字以内，应紧凑且无空行间隔。
-6. 直接回答: 直接呈现分析结果，无需进行额外的对话或开场白。`
+      ? `你是一位专业的聊天分析师。你需要根据用户的请求:“${task}”分析给定聊天记录。请遵循以下规则：
+在聊天记录之前是群组信息、时间段和用户列表，后续的聊天内容会使用 A,B 等字母作为代号。
+你的分析报告中，严禁使用 A,B 等字母来指代用户，必须将所有字母替换为对应的真实用户名。
+1. 识别核心：精准识别关键信息、主要话题、用户观点和情绪倾向。
+2. 保持客观：严格基于聊天记录分析，避免推测或添加虚构的信息。
+3. 格式要求：以纯文本进行输出，不要使用任何 Markdown 格式。
+4. 字数限制：将总字数控制在 512 字以内，应紧凑且无空行间隔。
+5. 直接回答：直接呈现分析结果，无需进行额外的对话或开场白。`
       : `你是一位专业的对话摘要师，你需要将以下聊天记录浓缩成一份精简的摘要。请遵循以下规则：
-1. 保留核心: 完整保留关键问题、明确的答复、达成的共识、重要的决策和具有强烈情感色彩的表达。
+1. 保留核心: 完整保留关键问题、明确的答复、达成的共识和具有强烈情感色彩的表达。
 2. 移除冗余: 删除日常问候、无意义的闲聊、重复或口语化的表达，以及离题的对话。
 3. 维持结构: 保持原始对话的逻辑顺序和因果关系，让摘要读起来像一个连贯的对话概要。
 4. 忠于原文: 不要添加任何外部信息或进行主观解读。输出内容必须完全源于原始记录。
