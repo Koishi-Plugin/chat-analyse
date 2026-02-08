@@ -74,8 +74,8 @@ export const Config: Schema<Config> = Schema.intersect([
     enableSimiActivity: Schema.boolean().default(true).description('启用活跃比较'),
     enableRankStat: Schema.boolean().default(true).description('启用发言排行'),
     enableWhoAt: Schema.boolean().default(true).description('启用提及记录'),
-    rankRetentionDays: Schema.number().min(0).default(365).description('排行保留天数'),
-    atRetentionDays: Schema.number().min(0).default(3).description('提及保留天数'),
+    rankRetentionDays: Schema.number().min(1).default(90).description('排行保留天数'),
+    atRetentionDays: Schema.number().min(1).default(7).description('提及保留天数'),
   }).description('基础配置'),
   Schema.object({
     enableOriRecord: Schema.boolean().default(true).description('启用原始记录'),
@@ -83,7 +83,7 @@ export const Config: Schema<Config> = Schema.intersect([
     enableAiSummary: Schema.boolean().default(false).description('启用模型分析'),
     tokenPerRequest: Schema.number().default(32768).description('最大 Token 数'),
     enableAutoBackup: Schema.boolean().default(true).description('启用自动归档'),
-    cacheRetentionDays: Schema.number().min(0).default(7).description('记录保留天数'),
+    cacheRetentionDays: Schema.number().min(1).default(3).description('记录保留天数'),
     endpoints: Schema.array(Schema.object({
       url: Schema.string().description('端点 (Endpoint)').role('link').required(),
       key: Schema.string().description('密钥 (API Key)').role('secret'),
